@@ -1,0 +1,442 @@
+google2
+```{r}
+library(googlesheets)
+library(tidyverse)
+library(lubridate)
+source("fig_save_jpeg.R")
+```
+```{r}
+e <- gs_key("1Uu6XF0LC4vRN8Vl_7XFfLd7TnjtCfSxI5USe3WaX-Ns")
+```
+
+```{r}
+e2 <- e %>%
+    gs_read_csv(ws="Form Responses 1")
+e2 <- e2 %>%
+    select(-c(`Time to use`,Perfusion,Pulse,Files,Date_2,Date_1,Date))
+    
+```
+
+```{r}
+str(e2, give.attr=FALSE)
+```
+```{r}
+col_2_change <- c(7,8,9,11,12,13,14,15,16,18,19,26,30,35,36,38,40,47,49)
+e2[col_2_change] <- lapply(e2[col_2_change], as.factor)
+col_2_change <- c(25,27,29,31,46)
+e2[col_2_change] <- lapply(e2[col_2_change], as.numeric)
+
+```
+
+```{r}
+e2$Timestamp <-mdy_hms(e2$Timestamp, tz="America/Chicago")
+
+```
+```{r}
+e2$ts_date <- date(e2$Timestamp)
+head(e2$ts_date)
+```
+
+```{r}
+e2 <- e2 %>%
+    mutate(alt.ts=ifelse(!is.na(`Time (if data collected earlier)`),paste(ts_date,`Time (if data collected earlier)`, sep=" "),NA))
+```
+
+```{r}
+head(e2$alt.ts)
+```
+```{r}
+class(e2$alt.ts)
+```
+
+```{r}
+e2$alt.ts <- ymd_hms(e2$alt.ts,tz="America/Chicago")
+class(e2$alt.ts)
+head(e2$alt.ts)
+```
+
+
+
+```{r}
+e2 <- e2 %>%
+    mutate(ts.use=pmin(Timestamp,alt.ts,na.rm = TRUE))
+```
+```{r}
+vital_data <- e2 %>%
+    select(ts.use,`Weight (lbs)`,`Systolic (mmHg)`,`Diastolic (mmHg)`,`Heart Rate (bmp)`,`Overnight heart rate (bpm)`,`Overnight O2 Sat.`,`Overnight Heart Rate Alarm`,Glucose, `Temperature f`, `BP method`) 
+```
+# Blood Pressures
+```{r}
+ggplot(e2, aes(ts.use,`Systolic (mmHg)`))+
+    geom_point(na.rm = TRUE)+
+    geom_hline(aes(yintercept = mean(`Systolic (mmHg)`,na.rm = TRUE)))+
+    labs(title="Ephraim's Systolic BP",
+         x="Time",
+         caption="Reference line is mean systolic")+
+    theme_bw()
+fig_save_jpeg("sys1", height = 7.5,width = 13.33)
+```
+```{r}
+ggplot(e2, aes(ts.use,`Diastolic (mmHg)`))+
+    geom_point(na.rm = TRUE)+
+    geom_hline(aes(yintercept = mean(`Diastolic (mmHg)`,na.rm = TRUE)))+
+    labs(title="Ephraim's Diastolic BP",
+         x="Time",
+         caption="Reference line is mean Diastolic")+
+    theme_bw()
+fig_save_jpeg("dia1")
+```
+```{r}
+bp <- vital_data %>%
+    filter(!is.na(`Systolic (mmHg)`)&!is.na(`Diastolic (mmHg)`)) %>%
+        select(ts.use,`Diastolic (mmHg)`,`Systolic (mmHg)`)
+bp2 <- tidyr::gather(data = bp, key = Key, value = mmHg, na.rm = FALSE, `Diastolic (mmHg)`, `Systolic (mmHg)`)
+
+ggplot(bp2,aes(ts.use,mmHg))+
+    geom_point(aes(color=Key))+
+    scale_color_discrete(name="Value",
+                        breaks=c("Diastolic (mmHg)", "Systolic (mmHg)"),
+                    labels=c("Diastolic","Systolic"))+
+    labs(title="Ephraim's Blood Pressure",
+         x="Date")+
+    theme_bw()+
+    geom_vline(aes(xintercept=15))
+fig_save_jpeg("bp2")
+#write_csv(bp,"bp.csv")
+```
+```{r}
+ggplot(vital_data,aes(`Systolic (mmHg)`))+
+    geom_histogram(na.rm = TRUE, binwidth = 5)+
+    theme_bw()+
+    labs(title="Systolic Histogram")
+fig_save_jpeg("syshis")
+```
+
+```{r}
+ggplot(vital_data,aes(`Diastolic (mmHg)`))+
+    geom_histogram(na.rm = TRUE, binwidth = 5)+
+    theme_bw()+
+    labs(title="Diastolic Histogram")
+fig_save_jpeg("diahis")
+```
+```{r}
+ggplot(bp2,aes(mmHg))+
+    geom_histogram(aes(fill=Key), alpha=0.5, binwidth = 8)+
+    theme_bw()+
+    labs(title="BP Histogram")
+fig_save_jpeg("combinebp")
+```
+
+```{r}
+sum(!is.na(e2$`Systolic (mmHg)`))
+summary(e2$`Systolic (mmHg)`)
+```
+
+
+# Start Report
+
+## General Notes
+```{r}
+day2 <- date(e2$ts.use)
+```
+
+This data was collected over the `r length(unique(day2))` days from `r min(day2)` to `r max(day2)`.  Data was collected by Ephraim's care givers, primarially mom and dad.  Durring this time period there were a total of  neuro events.  
+
+```{r}
+sum(!is.na(e2$`Time Event Started`))
+sum(!is.na(e2$`Time Ephraim becomes responsive?`))
+sum(!is.na(e2$`Time he returns to baseline`))
+sum(!is.na(e2$`How out of it is he`))
+```
+
+
+
+## Vitals
+
+
+
+```{r}
+summary(vital_data)
+```
+```{r}
+range(vital_data$`Weight (lbs)`, na.rm = TRUE)
+```
+```{r}
+range(vital_data$`Systolic (mmHg)`, na.rm = TRUE)
+```
+
+```{r}
+range(vital_data$`Diastolic (mmHg)`, na.rm = TRUE)
+```
+```{r}
+range(vital_data$Glucose, na.rm = TRUE)
+```
+```{r}
+ggplot(vital_data,aes(ts.use,Glucose))+
+    geom_point(na.rm = TRUE)
+```
+```{r}
+ggplot(vital_data,aes(Glucose))+
+    geom_histogram(binwidth = 8)
+```
+```{r}
+ggplot(vital_data,aes(date(ts.use),`Weight (lbs)`))+
+    geom_point(na.rm = TRUE)+
+    geom_line(na.rm=TRUE, aes(group=ts.use))+
+    labs(title="Ephraim's Weight vs. Day",
+         x="Date")+
+    theme_bw()
+fig_save_jpeg("weight_scatter")
+```
+
+```{r}
+ggplot(vital_data, aes(`Weight (lbs)`))+
+    geom_histogram(na.rm = TRUE, binwidth = .2)+
+    theme_bw()+
+    labs(title="Ephraim's Weight in Pounds")
+
+fig_save_jpeg("weighthist")
+
+```
+
+
+```{r}
+#neuro.color$`Time Ephraim becomes responsive?`
+```
+
+```{r}
+neuro.color <- e2 %>%
+    filter(!is.na(`Time Event Started`)|!is.na(`Self reported brain`)) %>%
+        select(c(10,11,12,13,14,15,16,17,18,19,20,47,52,38,35)) %>%
+            mutate(neuro.date=date(ts.use)) %>%
+                mutate(neuro.end=ifelse(!is.na(`Time Ephraim becomes responsive?`),paste(neuro.date,`Time Ephraim becomes responsive?`, sep=" "),NA))
+
+```
+
+```{r}
+summary(neuro.color)
+```
+
+```{r}
+neuro.color <- neuro.color %>%
+    mutate(neuro.end=ymd_hms(neuro.color$neuro.end,tz="America/Chicago"),
+           neuro.int=neuro.end%--%neuro.end)
+```
+
+```{r}
+f <- as.tibble(table(date(e2$ts.use),e2$`Self reported brain`))
+
+```
+```{r}
+d <- e2 %>%
+    filter(!is.na(e2$`Time Event Started`))
+length(unique(d$ts_date))
+
+```
+```{r}
+d <- neuro.color %>%
+    group_by(neuro.date) %>%
+        summarise(neuro.count=n_distinct(`Time Event Started`, na.rm = TRUE)) %>%
+            mutate(dayofweek=wday(neuro.date,label = TRUE))
+d
+write_csv(d,"neuro_day.csv")
+```
+
+```{r}
+
+```
+
+```{r}
+ggplot(d,aes(neuro.date,neuro.count))+
+    geom_col()+
+    theme_bw()+
+    labs(title="Neuro Event Count by Date",
+         x="Date",
+         y="Count")
+fig_save_jpeg("neuro_count_day")
+```
+```{r}
+ggplot(d,aes(dayofweek,neuro.count))+
+    geom_col()+
+    theme_bw()+
+    labs(title="Neuro Event Count by Day of Week",
+         x="Day of Week",
+         y="Count")
+fig_save_jpeg("neuro_count_dayofweek")
+```
+```{r}
+neuro.color %>%
+    filter(!is.na(`Time Event Started`)&!is.na(`Self reported brain`)) %>%
+        select(neuro.date,`Self reported brain`)
+```
+
+```{r}
+neuro.color %>%
+    filter(!is.na(`Self reported brain`)) %>%
+    group_by(`Self reported brain`) %>%
+        summarise(n_distinct(neuro.date))
+```
+
+```{r}
+table(neuro.color$`Self reported brain`)
+```
+```{r}
+a <- neuro.color %>%
+    mutate(hour=hour(`Time Event Started`)) %>%
+    group_by(hour,`Self reported brain`) %>%
+        summarise(count=n())
+a
+```
+
+```{r}
+ggplot(a,aes(hour,count))+
+           geom_col(aes(fill=`Self reported brain`))+
+    scale_x_continuous(breaks = 0:24)
+```
+```{r}
+b <- neuro.color %>%
+    filter(!is.na(`Time Event Started`)&!is.na(`Time Ephraim becomes responsive?`))
+b
+```
+
+```{r}
+b <- b %>%
+    mutate(neuro.int=`Time Ephraim becomes responsive?`%--%`Time Event Started`,
+           neuro.dur=as.duration(neuro.int))
+b$neuro.dur
+```
+
+```{r}
+
+```
+
+
+```{r}
+io <- e2 %>%
+    filter(!is.na(`Time Overnight cath in`)|!is.na(`Time overnight cath out`)|!is.na(`Overnight cath volume`)|!is.na(`IO Cath Time`)|!is.na(`IO Cath Volume mL`)|!is.na(`24 hr Ferrell Output`)|!is.na(`Wet diaper between cath time`)|!is.na(`Wet diaper between cath weight`)|!is.na(`Peed around cath?`)|!is.na(`Peed around cath diaper weight`)|!is.na(`Time fluids started`)|!is.na(`Time fluids stopped`))%>%
+        select(c(21,22,23,24,25,27,28,29,30,31,44,45,46,52))
+
+
+```
+
+```{r}
+io2 <- io %>%
+    group_by(date(ts.use)) %>%
+        summarize(day.total=sum(`Overnight cath volume`,`IO Cath Volume mL`,`24 hr Ferrell Output`,`Wet diaper between cath weight`,`Peed around cath diaper weight`,na.rm = TRUE))
+
+summary(io2)
+```
+
+
+```{r}
+ggplot(e2, aes(`Weight (lbs)`,`Systolic (mmHg)`))+
+    geom_point()
+```
+```{r}
+c <- e2 %>%
+    group_by(ts_date) %>%
+        summarise(mean_sys=mean(`Systolic (mmHg)`,na.rm = TRUE),
+                  mean_w=mean(`Weight (lbs)`,na.rm = TRUE),
+                  urine=sum(`Overnight cath volume`,`IO Cath Volume mL`,`Peed around cath diaper weight`, `Wet diaper between cath weight`, na.rm = TRUE))
+c
+```
+```{r}
+ggplot(c,aes(mean_w,mean_sys))+
+    geom_point()+
+    geom_smooth(method = "lm")
+```
+```{r}
+lm_ws <- lm(`Systolic (mmHg)`~`Weight (lbs)`,e2)
+summary(lm_ws)
+```
+
+```{r}
+lm_ws2 <- lm(mean_sys~mean_w,c)
+summary(lm_ws2)
+```
+
+```{r}
+ggplot(c,aes(urine,mean_sys))+
+    geom_point()+
+    theme_bw()+
+    labs(title="Systolic vs. Urine",
+         x="Daily Urine Output (mL)",
+         y="Daily Mean Systolic Pressure (mmHg)")
+fig_save_jpeg("su")
+```
+```{r}
+lm_su <- lm(mean_sys~urine,c)
+summary(lm_su)
+plot(lm_su)
+```
+```{r results='asis'}
+library(stargazer)
+stargazer(lm_su, header = FALSE,type = "html")
+```
+
+```{r}
+ggplot(c,aes(mean_w,urine))+
+    geom_point()
+```
+```{r}
+
+lm_uw <- lm(urine~mean_w,c)
+summary(lm_uw)
+plot(lm_uw)
+
+```
+
+```{r}
+tot <-c$urine
+nu <- bind_cols(d,c)
+nu
+```
+```{r}
+ggplot(nu,aes(neuro.count,urine))+
+    geom_jitter(position=position_jitter(0.1))+
+    stat_summary(fun.y = median, geom = "point",shape=18,color="red",size=4)+
+    labs(title="Urine vs. Neuro Events",
+         x="Number of neuro events",
+         y="Daily Urine Output (mL)",
+         caption="Red point is median")+
+    theme_bw()
+fig_save_jpeg("urinebrain")
+```
+```{r}
+lm.nu <- lm(urine~neuro.count,nu)
+summary(lm.nu)
+```
+```{r}
+fv <- e2 %>%
+    group_by(date(ts.use)) %>%
+        select(`Fluid volume`)
+fv
+```
+```{r}
+f <- as.tibble(table(date(e2$ts.use),e2$`Self reported brain`))
+f
+```
+```{r}
+f <- f %>%
+    filter(n!=0) %>%
+        rename(neuro.date=Var1,color=Var2) %>%
+            arrange(neuro.date)
+f
+```
+
+```{r}
+d <- d %>%
+    arrange(neuro.date)
+```
+
+```{r}
+color_event <- bind_cols(d,f)
+color_event
+```
+
+```{r}
+color_event %>%
+    group_by(color) %>%
+        summarize(neuro_event=sum(neuro.count))
+```
+

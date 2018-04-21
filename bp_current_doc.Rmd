@@ -1,0 +1,39 @@
+google2
+```{r}
+library(googlesheets)
+library(tidyverse)
+library(lubridate)
+source("fig_save_jpeg.R")
+```
+```{r}
+e <- gs_key("1Uu6XF0LC4vRN8Vl_7XFfLd7TnjtCfSxI5USe3WaX-Ns")
+```
+
+```{r}
+e2 <- e %>%
+    gs_read_csv(ws="Form Responses 1")
+e2 <- e2 %>%
+    select(-c(`Time to use`,Perfusion,Pulse,Files,Date_2,Date_1,Date))
+   
+col_2_change <- c(7,8,9,11,12,13,14,15,16,18,19,26,30,35,36,38,40,47,49)
+e2[col_2_change] <- lapply(e2[col_2_change], as.factor)
+col_2_change <- c(25,27,29,31,46)
+e2[col_2_change] <- lapply(e2[col_2_change], as.numeric)
+e2$Timestamp <-mdy_hms(e2$Timestamp, tz="America/Chicago")
+e2$ts_date <- date(e2$Timestamp) 
+e2 <- e2 %>%
+    mutate(alt.ts=ifelse(!is.na(`Time (if data collected earlier)`),paste(ts_date,`Time (if data collected earlier)`, sep=" "),NA))
+e2$alt.ts <- ymd_hms(e2$alt.ts,tz="America/Chicago")
+e2 <- e2 %>%
+    mutate(ts.use=pmin(Timestamp,alt.ts,na.rm = TRUE))
+
+vital_data <- e2 %>%
+    select(ts.use,`Weight (lbs)`,`Systolic (mmHg)`,`Diastolic (mmHg)`,`Heart Rate (bmp)`,`Overnight heart rate (bpm)`,`Overnight O2 Sat.`,`Overnight Heart Rate Alarm`,Glucose, `Temperature f`, `BP method`) 
+
+bp <- vital_data %>%
+    filter(!is.na(`Systolic (mmHg)`)&!is.na(`Diastolic (mmHg)`)) %>%
+        select(ts.use,`Diastolic (mmHg)`,`Systolic (mmHg)`)
+bp2 <- tidyr::gather(data = bp, key = Key, value = mmHg, na.rm = FALSE, `Diastolic (mmHg)`, `Systolic (mmHg)`)
+
+
+```

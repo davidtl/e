@@ -1,0 +1,70 @@
+```{r}
+library(tidyverse)
+library(broom)
+source("fig_save_jpeg.R")
+```
+
+```{r}
+bp2 <- read_csv("bp2.CSV")
+```
+
+```{r}
+bp2 <- tidyr::gather(data = bp2, key = Type, value = Meas, na.rm = FALSE, `Diastolic (mmHg)`, `Systolic (mmHg)`)
+```
+
+
+```{r}
+ggplot(bp2,aes(Type,Meas))+
+    geom_boxplot(aes(fill=Cat))+
+    labs(y="Pressure (mmHg)",
+         x="Systolic/Diastolic")+
+    scale_fill_discrete(name="Intervention")+
+    theme_bw()
+fig_save_jpeg("bp_box")
+```
+```{r}
+bp2 %>%
+    group_by(Cat,Type) %>%
+        summarize(mean_val=mean(Meas,na.rm = TRUE),
+                  sd_val=sd(Meas,na.rm = TRUE),
+                  bp_min=min(Meas),
+                  bp_max=max(Meas))
+```
+
+
+```{r}
+old_sys <- bp2 %>%
+    filter(Cat=="Old"&Type=="Systolic (mmHg)")
+```
+
+```{r}
+new_sys <- bp2 %>%
+    filter(Cat=="New"&Type=="Systolic (mmHg)")
+```
+
+```{r}
+t.test(new_sys$Meas,old_sys$Meas)
+```
+
+```{r}
+a <- tidy(t.test(new_sys$Meas,old_sys$Meas))
+```
+
+```{r}
+a
+```
+
+```{r}
+ggplot(bp2, aes(x=Cat, y=Meas,fill=Cat))+
+geom_col()+
+        stat_summary(geom="errorbar",fun.data = "mean_se", width=.2)+
+    theme_bw()+
+    labs(x="Treatment Category",
+         y="Systolic Pressure (mmHg)")
+```
+```{r}
+bp2 %>%
+    group_by(Cat, Type) %>%
+  summarise(M=mean(Meas), Med=median(Meas), Q1=quantile (Meas, probs=0.25), Q2=quantile (Meas, probs=0.50), Q3=quantile(Meas, probs=0.75))
+```
+
