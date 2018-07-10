@@ -4,6 +4,7 @@ library(googlesheets)
 library(tidyverse)
 library(lubridate)
 source("fig_save_jpeg.R")
+source("summarySE.R")
 ```
 ```{r}
 e <- gs_key("1Uu6XF0LC4vRN8Vl_7XFfLd7TnjtCfSxI5USe3WaX-Ns")
@@ -37,3 +38,85 @@ bp2 <- tidyr::gather(data = bp, key = Key, value = mmHg, na.rm = FALSE, `Diastol
 
 
 ```
+
+
+```{r}
+ggplot(bp2,aes(ts.use,mmHg))+
+    geom_point(aes(color=Key))+
+    scale_color_discrete(name="Value",
+                        breaks=c("Diastolic (mmHg)", "Systolic (mmHg)"),
+                    labels=c("Diastolic","Systolic"))+
+    labs(title="Ephraim's Blood Pressure",
+         x="Date")+
+    theme_bw()
+
+```
+```{r}
+str(bp2)
+```
+
+```{r}
+bp2 <- bp2 %>%
+    mutate(grp=if_else(ts.use < '2018-03-15', "Pre admission",
+               if_else(ts.use<='2018-04-06'&ts.use>='2018-03-15',"Post admission on 3.125",
+               if_else(ts.use>'2018-04-06'&ts.use<='2018-04-25',"Off all carvedilol",
+                if_else(ts.use>'2018-04-25'&ts.use<'2018-05-29',"Restart 3.125",
+                       "Last 2 weeks (3.125mg)")))))
+table(bp2$grp)
+
+
+```
+```{r}
+ggplot(bp2,aes(ts.use,mmHg))+
+    geom_point(aes(color=grp))+
+    labs(title="Ephraim's Blood Pressure",
+         x="Date")+
+    theme_bw()
+fig_save_jpeg("current_bp")
+```
+
+```{r}
+ggplot(bp2, aes(Key,mmHg))+
+    geom_boxplot(aes(fill=grp))
+fig_save_jpeg("current_box")
+```
+
+```{r}
+systolic <- bp2 %>%
+    filter(Key=="Systolic (mmHg)")
+
+sys_mod <- aov(lm(mmHg~grp,systolic))
+TukeyHSD(sys_mod)
+```
+```{r}
+library(broom)
+tukey <- tidy(TukeyHSD(sys_mod))
+write_csv(tukey,"tukey_data.CSV")
+```
+
+```{r}
+plot(TukeyHSD(sys_mod))
+```
+
+```{r}
+sum1 <- summarySE(bp2,measurevar = "mmHg",groupvars = c("Key","grp"))
+write_csv(sum1,"sum1.CSV")
+```
+```{r}
+sum2 <- bp2 %>%
+    group_by(Key,grp) %>%
+        summarize(min_val=min(mmHg),
+                  max_val=max(mmHg),
+                  mean_val=mean(mmHg),
+                  sd_val=sd(mmHg))
+write_csv(sum2,"sum2.CSV")
+```
+
+```{r}
+sum2
+```
+
+```{r}
+library(ggpubr)
+```
+

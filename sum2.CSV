@@ -1,0 +1,13 @@
+Key,grp,min_val,max_val,mean_val,sd_val
+Diastolic (mmHg),Pre admission,60,120,86.5625,12.872150047115014
+Diastolic (mmHg),Post admission 3.125 QD,41,78,58.57446808510638,10.083875809496595
+Diastolic (mmHg),D/C Carvedilol,30,77,57.78,10.521678301759387
+Diastolic (mmHg),Carvedilol Restart: 3.125 mg QD,40,78,59.130434782608695,7.7723360169980635
+Diastolic (mmHg),Carvedilol 2: 3.125 mg BID,34,80,65.96551724137932,10.864367572878814
+Diastolic (mmHg),Carvedilol 3: 3.125 mg BID,43,78,62.15625,8.517430773662149
+Systolic (mmHg),Pre admission,104,204,135.575,19.889425343793345
+Systolic (mmHg),Post admission 3.125 QD,69,138,102.1063829787234,17.798673671339515
+Systolic (mmHg),D/C Carvedilol,90,170,118.4,18.525217231368373
+Systolic (mmHg),Carvedilol Restart: 3.125 mg QD,90,146,110.15942028985508,14.058306303733115
+Systolic (mmHg),Carvedilol 2: 3.125 mg BID,92,143,115.10344827586206,13.061242632816393
+Systolic (mmHg),Carvedilol 3: 3.125 mg BID,90,143,111.96875,11.885657289622195

@@ -1,0 +1,80 @@
+---
+title: "Glucose"
+output: html_notebook
+---
+```{r}
+library(googlesheets)
+library(tidyverse)
+library(lubridate)
+source("fig_save_jpeg.R")
+source("summarySE.R")
+e <- gs_key("1Uu6XF0LC4vRN8Vl_7XFfLd7TnjtCfSxI5USe3WaX-Ns")
+
+```
+
+
+Data Processing
+```{r}
+e2 <- e %>%
+    gs_read_csv(ws="Form Responses 1")
+e2 <- e2 %>%
+    select(-c(`Time to use`,Perfusion,Pulse,Files,Date_2,Date_1,Date))
+   
+col_2_change <- c(7,8,9,11,12,13,14,15,16,18,19,26,30,35,36,38,40,47,49)
+e2[col_2_change] <- lapply(e2[col_2_change], as.factor)
+col_2_change <- c(25,27,29,31,46)
+e2[col_2_change] <- lapply(e2[col_2_change], as.numeric)
+e2$Timestamp <-mdy_hms(e2$Timestamp, tz="America/Chicago")
+e2$ts_date <- date(e2$Timestamp) 
+e2 <- e2 %>%
+    mutate(alt.ts=ifelse(!is.na(`Time (if data collected earlier)`),paste(ts_date,`Time (if data collected earlier)`, sep=" "),NA))
+e2$alt.ts <- ymd_hms(e2$alt.ts,tz="America/Chicago")
+e2 <- e2 %>%
+    mutate(ts.use=pmin(Timestamp,alt.ts,na.rm = TRUE))
+
+```
+
+```{r}
+glucose <- e2 %>%
+    select(ts.use,Glucose) %>%
+        filter(!is.na(Glucose))
+```
+
+```{r}
+summary(glucose$Glucose)
+```
+
+```{r}
+write_csv(glucose,"glucose_data.CSV")
+```
+
+```{r}
+glucose <- glucose %>%
+    mutate(grp=if_else(ts.use < '2018-03-15', "grp1",
+               if_else(ts.use<='2018-04-06'&ts.use>='2018-03-15',"grp2",
+               if_else(ts.use>'2018-04-06'&ts.use<'2018-04-25',"grp3",
+                       "grp4"))),
+           dummy="Glucose")
+```
+
+```{r}
+ggplot(glucose, aes(ts.use,Glucose))+
+    geom_point()+
+    labs(x="Date",
+         y="Glucose (mg/dL)",
+         title="Ephraim's Glucose")+
+    theme_bw()
+fig_save_jpeg("glucose_scatter")
+```
+
+```{r}
+ggplot(glucose,aes(dummy,Glucose))+
+    geom_boxplot(fill=c("#BFEFFF"))+
+    labs(y="Glucose (mg/dL)",
+         title="Ephraim's Glucose")+
+    scale_x_discrete(name="")+
+    theme_bw()
+fig_save_jpeg("glucose_box")
+
+```
+

@@ -1,0 +1,92 @@
+---
+title: "E2"
+output: html_notebook
+---
+```{r}
+library(tidyverse)
+library(readxl)
+library(lubridate)
+```
+
+# Data import
+
+## Data Import
+```{r}
+edata2 <- read_excel("edata2.xlsx", col_types = c("date", 
+    "date", "blank", "numeric", "numeric", 
+    "numeric", "numeric", "blank", "text", 
+    "text", "text", "text", "date", "text", 
+    "text", "text", "text", "text", "text", 
+    "date", "numeric", "text", "date", "date", 
+    "date", "date", "date", "numeric", "date", 
+    "text", "text", "text", "date", "text", 
+    "text", "text", "date", "date", "date", 
+    "text", "text", "date", "text", "text", 
+    "text", "text", "text", "numeric", "date", 
+    "date", "text", "text", "numeric", "text", 
+    "text", "date"))
+
+
+edata2$`IO Cath Volume mL` <- as.numeric(edata2$`IO Cath Volume mL`)
+unique(edata2$`IO Cath Volume mL`)
+
+```
+```{r}
+edata2$`24 hr Ferrell Output` <- as.numeric(edata2$`24 hr Ferrell Output`)
+unique(edata2$`24 hr Ferrell Output`)
+```
+```{r}
+edata2$`Fluid volume` <- as.numeric(edata2$`Fluid volume`)
+unique(edata2$`Fluid volume`)
+```
+
+```{r}
+str(edata2)
+```
+```{r}
+
+col_2_change <- c(8,9,10,12,13,14,15,16,17,19,20,29,31,33,38,39,41,43,50,52)
+edata2[col_2_change] <- lapply(edata2[col_2_change], as.factor)
+str(edata2)
+```
+
+
+```{r}
+summary(edata2$`Overnight cath volume`)
+sum(!is.na(edata2$`Overnight cath volume`))
+ggplot(edata2,aes(`Overnight cath volume`))+
+    geom_histogram(na.rm = TRUE)
+```
+```{r}
+edata2 <- edata2 %>%
+    mutate(ts.date=date(Timestamp))
+```
+
+```{r}
+ggplot(edata2,aes(ts.date,`Systolic (mmHg)`))+
+    geom_jitter(na.rm = TRUE,aes(color=`Systolic (mmHg)`, shape=`BP method`), size=4)+
+    geom_hline(aes(yintercept=mean(`Systolic (mmHg)`,na.rm = TRUE)), size=2)+
+    geom_hline(aes(yintercept=sd(`Systolic (mmHg)`,na.rm = TRUE)+mean(`Systolic (mmHg)`,na.rm=TRUE)),color="Red", size=2)+
+     geom_hline(aes(yintercept=mean(`Systolic (mmHg)`-sd(`Systolic (mmHg)`,na.rm = TRUE),na.rm=TRUE)),color="Red", size=2)+
+    labs(title="Ephraim's Systolic vs. Day",
+         x="Date",
+         caption="Red line is mean plus/minus 1 standard deviation")
+```
+
+```{r}
+ggplot(edata2,aes(ts.date,`Diastolic (mmHg)`))+
+    geom_jitter(na.rm = TRUE,aes(color=`Diastolic (mmHg)`,shape=`BP method`), size=4)+
+    geom_hline(aes(yintercept=mean(`Diastolic (mmHg)`,na.rm = TRUE)), size=2)+
+    geom_hline(aes(yintercept=sd(`Diastolic (mmHg)`,na.rm = TRUE)+mean(`Diastolic (mmHg)`,na.rm=TRUE)),color="Red", size=2)+
+     geom_hline(aes(yintercept=mean(`Diastolic (mmHg)`-sd(`Diastolic (mmHg)`,na.rm = TRUE),na.rm=TRUE)),color="Red", size=2)+
+    labs(title="Ephraim's Diastolic vs. Day",
+         x="Date",
+         caption="Red line is mean plus/minus 1 standard deviation")
+```
+
+```{r}
+bp_data <- edata2 %>%
+    filter(!is.na(`Diastolic (mmHg)`)) %>%
+        select(Timestamp, `Systolic (mmHg)`, `Diastolic (mmHg)`, `BP method`)
+```
+

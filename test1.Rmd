@@ -1,0 +1,21 @@
+```{r}
+library(tidyverse)
+library(readxl)
+edata1 <- read_excel("edata1.xlsx")
+```
+
+```{r}
+bp <- edata1 %>%
+    select(c("time.use","systolic","diastolic"))
+summary(bp)
+
+bp <- tidyr::gather(data = bp, key = bp.param, value = bp.val, na.rm = TRUE, systolic, diastolic)
+ggplot(bp,aes(time.use,bp.val))+
+    geom_point(aes(color=bp.param))+
+    geom_hline(yintercept = 130, color="light blue")
+```
+
+```{r}
+
+```
+

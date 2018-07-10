@@ -102,7 +102,7 @@ ggplot(bp2,aes(ts.use,mmHg))+
     theme_bw()+
     geom_vline(aes(xintercept=15))
 fig_save_jpeg("bp2")
-#write_csv(bp,"bp.csv")
+write_csv(bp,"bp.csv")
 ```
 ```{r}
 ggplot(vital_data,aes(`Systolic (mmHg)`))+
