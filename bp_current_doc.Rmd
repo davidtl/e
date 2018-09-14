@@ -57,15 +57,22 @@ str(bp2)
 
 ```{r}
 bp2 <- bp2 %>%
-    mutate(grp=if_else(ts.use < '2018-03-15', "Pre admission",
-               if_else(ts.use<='2018-04-06'&ts.use>='2018-03-15',"Post admission on 3.125",
-               if_else(ts.use>'2018-04-06'&ts.use<='2018-04-25',"Off all carvedilol",
-                if_else(ts.use>'2018-04-25'&ts.use<'2018-05-29',"Restart 3.125",
-                       "Last 2 weeks (3.125mg)")))))
+    mutate(grp=as.factor(if_else(ts.use < '2018-03-15', "Pre admission",
+               if_else(ts.use<='2018-04-06'&ts.use>='2018-03-15',"Post admission 3.125 QD",
+               if_else(ts.use>'2018-04-06'&ts.use<='2018-04-25',"D/C Carvedilol",
+                if_else(ts.use>'2018-04-25'&ts.use<='2018-05-29',"Carvedilol Restart: 3.125 mg QD",
+                        if_else(ts.use>'2018-05-29'&ts.use<'2018-06-08',  "Carvedilol 2: 3.125 mg BID",
+                                "Carvedilol 3: 3.125 mg BID")))))))
 table(bp2$grp)
 
 
 ```
+
+```{r}
+## Reordering bp2$grp
+bp2$grp <- factor(bp2$grp, levels=c("Pre admission", "Post admission 3.125 QD", "D/C Carvedilol", "Carvedilol Restart: 3.125 mg QD", "Carvedilol 2: 3.125 mg BID", "Carvedilol 3: 3.125 mg BID"))
+```
+
 ```{r}
 ggplot(bp2,aes(ts.use,mmHg))+
     geom_point(aes(color=grp))+
@@ -115,8 +122,3 @@ write_csv(sum2,"sum2.CSV")
 ```{r}
 sum2
 ```
-
-```{r}
-library(ggpubr)
-```
-
